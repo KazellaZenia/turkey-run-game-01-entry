@@ -8,7 +8,7 @@
 // Run it outside the grader with MAKEFUN_OUTPUT_DIR standing in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
@@ -17,9 +17,14 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
 // Start from a clean output directory so a stale screenshot or dossier from
-// an earlier run can never leak into this one.
-rmSync(out, { recursive: true, force: true });
+// an earlier run can never leak into this one. Never remove the output
+// directory itself: in the grader it is a mounted volume (/output), and
+// removing a mount point throws EBUSY and fails the run. Clear only its
+// contents instead.
 mkdirSync(out, { recursive: true });
+for (const child of readdirSync(out)) {
+  rmSync(join(out, child), { recursive: true, force: true });
+}
 cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
 mkdirSync(join(out, 'screenshots'), { recursive: true });
 if (existsSync(join(here, 'screenshots'))) {
